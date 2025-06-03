@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Conversor ENEL - Imagens para PDF</title>
+  <title>Entrega de Documentos</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* Mantive seu estilo + barras de progresso */
     * { box-sizing: border-box; }
     body {
       font-family: 'Poppins', sans-serif;
@@ -28,6 +27,7 @@
       padding: 2rem;
       border-radius: 16px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      position: relative;
     }
     .section {
       margin-bottom: 1.5rem;
@@ -86,17 +86,64 @@
     }
     .success { color: green; }
     .error { color: red; }
+    .preview {
+      background-color: #f1f9ff;
+      padding: 1rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      white-space: pre-line;
+      font-size: 0.95rem;
+      border: 1px solid #cce5ff;
+    }
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 100;
+      border-radius: 16px;
+      display: none;
+    }
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #0077b6;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: #0077b6;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
-  <h1>Conversor de Imagens para PDF</h1>
+  <h1>Entrega de Documentos</h1>
 
   <div class="container">
+    <div class="loading-overlay" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Aguarde, estamos organizando as imagens...</div>
+    </div>
+
     <div class="section">
       <label for="ordem-servico">Ordem de Serviço</label>
       <input type="text" id="ordem-servico" placeholder="Digite o número da O.S.">
     </div>
 
+    <!-- Campos -->
     <div class="section">
       <label for="croqui">Croqui</label>
       <input type="file" id="croqui" accept="image/*" multiple>
@@ -139,11 +186,29 @@
       <div class="status" id="status-execucao"></div>
     </div>
 
-    <button id="convert-button">Converter e Salvar PDF</button>
+    <button id="convert-button">Enviar Documentação</button>
+
+    <div class="preview" id="preview-message">
+      Nenhum envio realizado ainda.
+    </div>
+
+    <button id="whatsapp-button">Encaminhar para WhatsApp</button>
   </div>
 
   <script>
     const API_URL = "https://backend-entrega-documentos-818351890829.southamerica-east1.run.app/upload";
+
+    const labels = [
+      { id: 'croqui', nome: 'CROQUI', nomeArquivo: 'CROQUI' },
+      { id: 'atendimento', nome: 'ATENDIMENTO DE MATERIAIS', nomeArquivo: 'FORMULÁRIO DE ATENDIMENTO' },
+      { id: 'devolucao', nome: 'DEVOLUÇÃO DE MATERIAIS NÃO UTILIZADOS', nomeArquivo: 'FORMULÁRIO DE DEVOLUÇÃO' },
+      { id: 'sucata', nome: 'SUCATA GERADA', nomeArquivo: 'FORMULÁRIO DE SUCATA' },
+      { id: 'trafo', nome: 'FICHA DO TRAFO', nomeArquivo: 'FICHA DO TRAFO' },
+      { id: 'execucao', nome: 'EVIDÊNCIAS DA EXECUÇÃO DO SERVIÇO', nomeArquivo: 'FOTOS' }
+    ];
+
+    const preview = document.getElementById('preview-message');
+    const loadingOverlay = document.getElementById('loading');
 
     document.getElementById('convert-button').addEventListener('click', async () => {
       const ordemServico = document.getElementById('ordem-servico').value.trim().toUpperCase();
@@ -152,14 +217,9 @@
         return;
       }
 
-      const labels = [
-        { id: 'croqui', nome: 'CROQUI', nomeArquivo: `CROQUI ${ordemServico}` },
-        { id: 'atendimento', nome: 'ATENDIMENTO DE MATERIAIS', nomeArquivo: `FORMULÁRIO DE ATENDIMENTO ${ordemServico}` },
-        { id: 'devolucao', nome: 'DEVOLUÇÃO DE MATERIAIS NÃO UTILIZADOS', nomeArquivo: `FORMULÁRIO DE DEVOLUÇÃO ${ordemServico}` },
-        { id: 'sucata', nome: 'SUCATA GERADA', nomeArquivo: `FORMULÁRIO DE SUCATA ${ordemServico}` },
-        { id: 'trafo', nome: 'FICHA DO TRAFO', nomeArquivo: `FICHA DO TRAFO ${ordemServico}` },
-        { id: 'execucao', nome: 'EVIDÊNCIAS DA EXECUÇÃO DO SERVIÇO', nomeArquivo: `FOTOS ${ordemServico}` }
-      ];
+      loadingOverlay.style.display = 'flex';
+
+      const statusMap = {};
 
       for (const label of labels) {
         const input = document.getElementById(label.id);
@@ -169,35 +229,63 @@
         progressBar.style.width = "0%";
         status.textContent = "";
 
-        if (files.length === 0) continue;
+        if (files.length === 0) {
+          statusMap[label.nome] = "Não enviado!";
+          updatePreview(ordemServico, statusMap);
+          continue;
+        }
 
         try {
           const sortedFiles = files.sort((a, b) => a.name.localeCompare(b.name));
           const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-          for (const file of sortedFiles) {
+          for (let i = 0; i < sortedFiles.length; i++) {
+            const file = sortedFiles[i];
             const img = await loadImage(file);
             const imgProps = getImageOrientationProps(img);
-
             pdf.addImage(img, 'JPEG', imgProps.x, imgProps.y, imgProps.width, imgProps.height);
-            if (file !== sortedFiles[sortedFiles.length - 1]) {
+            if (i !== sortedFiles.length - 1) {
               pdf.addPage();
             }
+            const percent = ((i + 1) / sortedFiles.length) * 50; // 50% na organização
+            progressBar.style.width = `${percent}%`;
           }
 
           const pdfBlob = pdf.output("blob");
           const formData = new FormData();
           formData.append('ordem_servico', ordemServico);
           formData.append('categoria', label.nome);
-          formData.append('file', pdfBlob, `${label.nomeArquivo}.pdf`);
+          formData.append('file', pdfBlob, `${label.nomeArquivo} ${ordemServico}.pdf`);
 
           await uploadFile(formData, progressBar, status);
-        } catch (error) {
-          status.textContent = "❌ Erro ao enviar. Atualize a página e tente novamente.";
-          status.className = "status error";
+
+          // Download no dispositivo
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${label.nomeArquivo} ${ordemServico}.pdf`;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          statusMap[label.nome] = "Arquivo enviado!";
+        } catch {
+          statusMap[label.nome] = "Não enviado!";
         }
+
+        updatePreview(ordemServico, statusMap);
       }
+
+      loadingOverlay.style.display = 'none';
     });
+
+    function updatePreview(ordemServico, statusMap) {
+      const now = new Date();
+      let message = `COMPROVANTE DE ENVIO - O.S. ${ordemServico}\n\n`;
+      for (const label of labels) {
+        message += `*${label.nome}*: ${statusMap[label.nome] || "Não enviado!"}\n`;
+      }
+      preview.textContent = message;
+    }
 
     async function uploadFile(formData, progressBar, status) {
       return new Promise((resolve, reject) => {
@@ -206,25 +294,25 @@
 
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
-            const percent = (e.loaded / e.total) * 100;
+            const percent = (e.loaded / e.total) * 50 + 50; // Completa até 100%
             progressBar.style.width = `${percent}%`;
           }
         });
 
         xhr.onload = () => {
           if (xhr.status === 200) {
-            status.textContent = "✅ Enviado com sucesso!";
+            status.textContent = "Arquivo enviado!";
             status.className = "status success";
             resolve();
           } else {
-            status.textContent = "❌ Erro ao enviar.";
+            status.textContent = "Não enviado!";
             status.className = "status error";
             reject();
           }
         };
 
         xhr.onerror = () => {
-          status.textContent = "❌ Erro de conexão.";
+          status.textContent = "Não enviado!";
           status.className = "status error";
           reject();
         };
@@ -265,6 +353,22 @@
 
       return { x, y, width, height };
     }
+
+    document.getElementById('whatsapp-button').addEventListener('click', () => {
+      const now = new Date();
+      const datetime = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      const ordemServico = document.getElementById('ordem-servico').value.trim().toUpperCase();
+      if (!ordemServico) {
+        alert('Preencha o número da Ordem de Serviço.');
+        return;
+      }
+
+      const fullMessage = preview.textContent + `\nData/Hora: ${datetime}`;
+      navigator.clipboard.writeText(fullMessage);
+
+      const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+      window.open(url, '_blank');
+    });
   </script>
 </body>
 </html>
