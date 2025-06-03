@@ -291,38 +291,56 @@
     }
 
     async function uploadFile(formData, progressBar, status) {
-      return new Promise((resolve, reject) => {
+      const MAX_ATTEMPTS = 5;
+      let attempt = 0;
+    
+      async function tryUpload(resolve, reject) {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", API_URL);
-
+    
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
-            const percent = (e.loaded / e.total) * 50 + 50; // Completa até 100%
+            const percent = (e.loaded / e.total) * 50 + 50;
             progressBar.style.width = `${percent}%`;
           }
         });
-
+    
         xhr.onload = () => {
           if (xhr.status === 200) {
             status.textContent = "Arquivo enviado!";
             status.className = "status success";
             resolve();
           } else {
-            status.textContent = "Não enviado!";
-            status.className = "status error";
-            reject();
+            retryOrFail();
           }
         };
-
-        xhr.onerror = () => {
-          status.textContent = "Não enviado!";
-          status.className = "status error";
-          reject();
-        };
-
+    
+        xhr.onerror = () => retryOrFail();
+    
         xhr.send(formData);
-      });
-    }
+      }
+    
+      function retryOrFail() {
+        attempt++;
+        if (attempt < MAX_ATTEMPTS) {
+          status.textContent = `Erro no envio. Tentando novamente (${attempt + 1}/${MAX_ATTEMPTS})...`;
+          setTimeout(() => tryUpload(resolveRef, rejectRef), 1000); // espera 1s entre tentativas
+        } else {
+          status.textContent = "Não enviado após várias tentativas.";
+          status.className = "status error";
+          rejectRef();
+        }
+      }
+
+  // Promessa com referências para poder chamar de dentro
+  let resolveRef, rejectRef;
+  return new Promise((resolve, reject) => {
+    resolveRef = resolve;
+    rejectRef = reject;
+    tryUpload(resolve, reject);
+  });
+}
+
 
     function loadImage(file) {
       return new Promise((resolve) => {
