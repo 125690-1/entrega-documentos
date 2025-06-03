@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversor ENEL - Imagens para PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Mantive seu estilo + barras de progresso */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f4f8;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #0077b6;
+      margin-bottom: 2rem;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #fff;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .section {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #023e8a;
+    }
+    input[type="text"], input[type="file"] {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #f9fbfd;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]:focus, input[type="file"]:focus {
+      border-color: #0077b6;
+      outline: none;
+    }
+    button {
+      width: 100%;
+      padding: 1rem;
+      background-color: #0077b6;
+      color: white;
+      border: none;
+      font-size: 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      font-weight: 600;
+    }
+    button:hover {
+      background-color: #0096c7;
+      transform: translateY(-2px);
+    }
+    .progress-container {
+      width: 100%;
+      background-color: #eee;
+      border-radius: 8px;
+      margin-top: 5px;
+      height: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #0077b6;
+      width: 0%;
+      border-radius: 8px;
+      transition: width 0.3s;
+    }
+    .status {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Conversor de Imagens para PDF</h1>
+
+  <div class="container">
+    <div class="section">
+      <label for="ordem-servico">Ordem de Serviço</label>
+      <input type="text" id="ordem-servico" placeholder="Digite o número da O.S.">
+    </div>
+
+    <div class="section">
+      <label for="croqui">Croqui</label>
+      <input type="file" id="croqui" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-croqui"></div></div>
+      <div class="status" id="status-croqui"></div>
+    </div>
+
+    <div class="section">
+      <label for="atendimento">Atendimento de Materiais</label>
+      <input type="file" id="atendimento" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-atendimento"></div></div>
+      <div class="status" id="status-atendimento"></div>
+    </div>
+
+    <div class="section">
+      <label for="devolucao">Devolução de Materiais Não Utilizados</label>
+      <input type="file" id="devolucao" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-devolucao"></div></div>
+      <div class="status" id="status-devolucao"></div>
+    </div>
+
+    <div class="section">
+      <label for="sucata">Sucata Gerada</label>
+      <input type="file" id="sucata" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-sucata"></div></div>
+      <div class="status" id="status-sucata"></div>
+    </div>
+
+    <div class="section">
+      <label for="trafo">Ficha do Trafo</label>
+      <input type="file" id="trafo" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-trafo"></div></div>
+      <div class="status" id="status-trafo"></div>
+    </div>
+
+    <div class="section">
+      <label for="execucao">Evidências da Execução do Serviço</label>
+      <input type="file" id="execucao" accept="image/*" multiple>
+      <div class="progress-container"><div class="progress-bar" id="progress-execucao"></div></div>
+      <div class="status" id="status-execucao"></div>
+    </div>
+
+    <button id="convert-button">Converter e Salvar PDF</button>
+  </div>
+
+  <script>
+    const API_URL = "https://SEU_ENDPOINT_DO_CLOUD_RUN/upload";
+
+    document.getElementById('convert-button').addEventListener('click', async () => {
+      const ordemServico = document.getElementById('ordem-servico').value.trim().toUpperCase();
+      if (!ordemServico) {
+        alert('Preencha o número da Ordem de Serviço.');
+        return;
+      }
+
+      const labels = [
+        { id: 'croqui', nome: 'CROQUI', nomeArquivo: `CROQUI ${ordemServico}` },
+        { id: 'atendimento', nome: 'ATENDIMENTO DE MATERIAIS', nomeArquivo: `FORMULÁRIO DE ATENDIMENTO ${ordemServico}` },
+        { id: 'devolucao', nome: 'DEVOLUÇÃO DE MATERIAIS NÃO UTILIZADOS', nomeArquivo: `FORMULÁRIO DE DEVOLUÇÃO ${ordemServico}` },
+        { id: 'sucata', nome: 'SUCATA GERADA', nomeArquivo: `FORMULÁRIO DE SUCATA ${ordemServico}` },
+        { id: 'trafo', nome: 'FICHA DO TRAFO', nomeArquivo: `FICHA DO TRAFO ${ordemServico}` },
+        { id: 'execucao', nome: 'EVIDÊNCIAS DA EXECUÇÃO DO SERVIÇO', nomeArquivo: `FOTOS ${ordemServico}` }
+      ];
+
+      for (const label of labels) {
+        const input = document.getElementById(label.id);
+        const files = [...input.files];
+        const progressBar = document.getElementById(`progress-${label.id}`);
+        const status = document.getElementById(`status-${label.id}`);
+        progressBar.style.width = "0%";
+        status.textContent = "";
+
+        if (files.length === 0) continue;
+
+        try {
+          const sortedFiles = files.sort((a, b) => a.name.localeCompare(b.name));
+          const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+          for (const file of sortedFiles) {
+            const img = await loadImage(file);
+            const imgProps = getImageOrientationProps(img);
+
+            pdf.addImage(img, 'JPEG', imgProps.x, imgProps.y, imgProps.width, imgProps.height);
+            if (file !== sortedFiles[sortedFiles.length - 1]) {
+              pdf.addPage();
+            }
+          }
+
+          const pdfBlob = pdf.output("blob");
+          const formData = new FormData();
+          formData.append('ordem_servico', ordemServico);
+          formData.append('categoria', label.nome);
+          formData.append('file', pdfBlob, `${label.nomeArquivo}.pdf`);
+
+          await uploadFile(formData, progressBar, status);
+        } catch (error) {
+          status.textContent = "❌ Erro ao enviar. Atualize a página e tente novamente.";
+          status.className = "status error";
+        }
+      }
+    });
+
+    async function uploadFile(formData, progressBar, status) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", API_URL);
+
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            progressBar.style.width = `${percent}%`;
+          }
+        });
+
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            status.textContent = "✅ Enviado com sucesso!";
+            status.className = "status success";
+            resolve();
+          } else {
+            status.textContent = "❌ Erro ao enviar.";
+            status.className = "status error";
+            reject();
+          }
+        };
+
+        xhr.onerror = () => {
+          status.textContent = "❌ Erro de conexão.";
+          status.className = "status error";
+          reject();
+        };
+
+        xhr.send(formData);
+      });
+    }
+
+    function loadImage(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function getImageOrientationProps(img) {
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgRatio = img.width / img.height;
+      const pageRatio = pageWidth / pageHeight;
+
+      let width, height;
+      if (imgRatio > pageRatio) {
+        width = pageWidth;
+        height = pageWidth / imgRatio;
+      } else {
+        height = pageHeight;
+        width = pageHeight * imgRatio;
+      }
+
+      const x = (pageWidth - width) / 2;
+      const y = (pageHeight - height) / 2;
+
+      return { x, y, width, height };
+    }
+  </script>
+</body>
+</html>
