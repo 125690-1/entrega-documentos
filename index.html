@@ -1,14 +1,14 @@
 
-
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Entrega de Documentos</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Entrega de Documentos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<style>
     * { box-sizing: border-box; }
     body {
       font-family: 'Poppins', sans-serif;
@@ -103,7 +103,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.7);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -129,76 +129,95 @@
       color: #0077b6;
       font-weight: 600;
     }
-  </style>
+  
+.tipo-btn {
+  background-color: #0077b6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 45px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  width: auto;
+}
+
+.tipo-btn:hover {
+  background-color: #0096c7;
+}
+
+.ordem-linha {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+</style>
 </head>
 <body>
-  <img src="logo.png" alt="Logo Enel" style="display:block; margin:0 auto 20px; max-width:200px;">
+<img alt="Logo Enel" src="logo.png" style="display:block; margin:0 auto 20px; max-width:200px;"/>
 <h1>Entrega de Documentos</h1>
-
-  <div class="container">
-    <div class="loading-overlay" id="loading">
-      <div class="spinner"></div>
-      <div class="loading-text">Aguarde, estamos organizando as imagens...</div>
-    </div>
-
-    <div class="section">
-      <label for="ordem-servico">Ordem de Serviço</label>
-      <input type="text" id="ordem-servico" placeholder="Digite o número da O.S.">
-    </div>
-
-    <!-- Campos -->
-    <div class="section">
-      <label for="croqui">Croqui</label>
-      <input type="file" id="croqui" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-croqui"></div></div>
-      <div class="status" id="status-croqui"></div>
-    </div>
-
-    <div class="section">
-      <label for="atendimento">Atendimento de Materiais</label>
-      <input type="file" id="atendimento" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-atendimento"></div></div>
-      <div class="status" id="status-atendimento"></div>
-    </div>
-
-    <div class="section">
-      <label for="devolucao">Devolução de Materiais Não Utilizados</label>
-      <input type="file" id="devolucao" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-devolucao"></div></div>
-      <div class="status" id="status-devolucao"></div>
-    </div>
-
-    <div class="section">
-      <label for="sucata">Sucata Gerada</label>
-      <input type="file" id="sucata" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-sucata"></div></div>
-      <div class="status" id="status-sucata"></div>
-    </div>
-
-    <div class="section">
-      <label for="trafo">Ficha do Trafo</label>
-      <input type="file" id="trafo" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-trafo"></div></div>
-      <div class="status" id="status-trafo"></div>
-    </div>
-
-    <div class="section">
-      <label for="execucao">Evidências da Execução do Serviço</label>
-      <input type="file" id="execucao" accept="image/*" multiple>
-      <div class="progress-container"><div class="progress-bar" id="progress-execucao"></div></div>
-      <div class="status" id="status-execucao"></div>
-    </div>
-
-    <button id="convert-button">Enviar Documentação</button>
-
-    <div class="preview" id="preview-message">
+<div class="container">
+<div class="loading-overlay" id="loading">
+<div class="spinner"></div>
+<div class="loading-text">Aguarde, estamos organizando as imagens...</div>
+</div>
+<div class="section">
+<label for="ordem-servico">Ordem de Serviço</label>
+<div id="ordem-botoes" class="ordem-linha">
+  <button type="button" class="tipo-btn" data-tipo="INC">INC</button>
+  <button type="button" class="tipo-btn" data-tipo="DT">DT</button>
+  <button type="button" class="tipo-btn" data-tipo="BA">BA</button>
+</div>
+<input id="ordem-servico" placeholder="Preencha a O.S." style="display:none;" type="text"/>
+</div>
+<!-- Campos -->
+<div class="section">
+<label for="croqui">Croqui</label>
+<input accept="image/*" id="croqui" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-croqui"></div></div>
+<div class="status" id="status-croqui"></div>
+</div>
+<div class="section">
+<label for="atendimento">Atendimento de Materiais</label>
+<input accept="image/*" id="atendimento" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-atendimento"></div></div>
+<div class="status" id="status-atendimento"></div>
+</div>
+<div class="section">
+<label for="devolucao">Devolução de Materiais Não Utilizados</label>
+<input accept="image/*" id="devolucao" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-devolucao"></div></div>
+<div class="status" id="status-devolucao"></div>
+</div>
+<div class="section">
+<label for="sucata">Sucata Gerada</label>
+<input accept="image/*" id="sucata" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-sucata"></div></div>
+<div class="status" id="status-sucata"></div>
+</div>
+<div class="section">
+<label for="trafo">Ficha do Trafo</label>
+<input accept="image/*" id="trafo" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-trafo"></div></div>
+<div class="status" id="status-trafo"></div>
+</div>
+<div class="section">
+<label for="execucao">Evidências da Execução do Serviço</label>
+<input accept="image/*" id="execucao" multiple="" type="file"/>
+<div class="progress-container"><div class="progress-bar" id="progress-execucao"></div></div>
+<div class="status" id="status-execucao"></div>
+</div>
+<button id="convert-button">Enviar Documentação</button>
+<div class="preview" id="preview-message">
       Nenhum envio realizado ainda.
     </div>
-
-    <button id="whatsapp-button">Encaminhar para WhatsApp</button>
-  </div>
-
-  <script>
+<button id="whatsapp-button">Encaminhar para WhatsApp</button>
+</div>
+<script>
     const API_URL = "https://backend-entrega-documentos-818351890829.southamerica-east1.run.app/upload";
 
     const labels = [
@@ -390,6 +409,30 @@
       const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
       window.open(url, '_blank');
     });
-  </script>
+  
+const osInput = document.getElementById('ordem-servico');
+const tipoBotoes = document.querySelectorAll('.tipo-btn');
+
+tipoBotoes.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tipo = btn.getAttribute('data-tipo');
+    osInput.style.display = 'block';
+    osInput.value = tipo === 'INC' ? '' : tipo;
+    osInput.focus();
+    osInput.setSelectionRange(osInput.value.length, osInput.value.length);
+
+    osInput.oninput = () => {
+      osInput.value = osInput.value.replace(/\s/g, '');
+
+      if (tipo === 'INC') {
+        osInput.value = osInput.value.replace(/\D/g, '').slice(0, 8);
+      } else {
+        let sufixo = osInput.value.slice(tipo.length).replace(/\D/g, '').slice(0, 8);
+        osInput.value = tipo + sufixo;
+      }
+    };
+  });
+});
+</script>
 </body>
 </html>
